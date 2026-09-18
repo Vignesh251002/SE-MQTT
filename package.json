@@ -1,0 +1,27 @@
+{
+    "name": "sd-mqtt-worker",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "node --import ./src/instrument.js src/index.js",
+        "dev": "node --watch --import ./src/instrument.js src/index.js"
+    },
+    "dependencies": {
+        "@sentry/node": "^10.67.0",
+        "@sentry/profiling-node": "^10.67.0",
+        "crc-32": "^1.2.2",
+        "dotenv": "^16.4.7",
+        "ioredis": "^5.4.1",
+        "mqtt": "^5.10.3",
+        "mysql2": "^3.15.3",
+        "ngeohash": "^0.6.3",
+        "pino": "^9.6.0",
+        "uuid": "^11.0.5",
+        "zod": "^3.24.1"
+    },
+    "overrides": {
+        "mysql2": "^3.15.3"
+    }
+}

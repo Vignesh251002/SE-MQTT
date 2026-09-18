@@ -1,0 +1,78 @@
+# LOCAL DEVELOPMENT ONLY
+#
+# This compose file intentionally runs local dependencies (Mosquitto + Redis) for dev/testing.
+# In ECS/live you should NOT deploy these containers from this repo:
+# - Redis should be AWS ElastiCache (set REDIS_URL)
+# - Mosquitto should be your existing ECS container/service
+services:
+  # Local-only Mosquitto broker (dev/testing)
+  mosquitto:
+    build:
+      context: ./docker/mosquitto
+      dockerfile: Dockerfile
+    container_name: sd-mqtt-mosquitto
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - sd_mqtt_mosquitto_data:/mosquitto/data
+
+  # Local-only Redis (dev/testing)
+  redis:
+    image: redis:7-alpine
+    container_name: sd-mqtt-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-local-dev-change-this-password}
+    command:
+      - sh
+      - -c
+      - redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"
+    volumes:
+      - sd_mqtt_redis_data:/data
+
+  # Optional local MySQL (enable with: docker compose --profile mysql up -d)
+  mysql:
+    profiles: ["mysql"]
+    image: mysql:8.0
+    container_name: sd-mqtt-mysql
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-bdapp}
+    volumes:
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+      - sd_mqtt_mysql_data:/var/lib/mysql
+
+  # The worker (this is the same image you deploy to ECS)
+  sd-mqtt-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sd-mqtt-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Local compose wiring
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      MQTT_USERNAME: ${MOSQUITTO_USERNAME}
+      MQTT_PASSWORD: ${MOSQUITTO_PASSWORD}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-local-dev-change-this-password}@redis:6379
+      # If you enable the mysql profile, set MYSQL_HOST=mysql in your .env (or add it here)
+    depends_on:
+      - mosquitto
+      - redis
+
+volumes:
+  sd_mqtt_mosquitto_data:
+  sd_mqtt_redis_data:
+  sd_mqtt_mysql_data:
