@@ -1,4 +1,4 @@
-FROM eclipse-mosquitto:2.0
+FROM eclipse-mosquitto:2.1-alpine
 
 # Auth-enabled config + entrypoint that generates passwordfile from env vars
 COPY mosquitto.auth.conf /mosquitto/config/mosquitto.conf
